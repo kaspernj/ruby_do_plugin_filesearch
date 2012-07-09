@@ -34,11 +34,9 @@ class Ruby_do_plugin_filesearch < Ruby_do::Plugin::Base
   
   def on_search(args)
     return Enumerator.new do |yielder|
-      words = args[:text].split(/\s+/).map{|ele| ele.downcase}
-      
-      if !words.empty?
+      if !args[:words].empty?
         @ob.list(:Plugin_filesearch_folder) do |folder|
-          files = self.scan_dir(folder[:path], :words => words, :depth => 0, :max_depth => folder[:search_depth].to_i) do |file|
+          files = self.scan_dir(folder[:path], :words => args[:words], :depth => 0, :max_depth => folder[:search_depth].to_i) do |file|
             title = sprintf(_("Open '%s'."), file[:name])
             
             yielder << Ruby_do::Plugin::Result.new(
@@ -54,8 +52,8 @@ class Ruby_do_plugin_filesearch < Ruby_do::Plugin::Base
     end
   end
   
-  def execute_result(res)
-    Knj::Os.subproc("xdg-open \"#{res.args[:path]}\"")
+  def execute_result(args)
+    Knj::Os.subproc("xdg-open \"#{args[:res].args[:path]}\"")
     return :close_win_main
   end
   
@@ -63,26 +61,26 @@ class Ruby_do_plugin_filesearch < Ruby_do::Plugin::Base
     depth = args[:depth] + 1
     
     Dir.foreach(path) do |file|
-      next if file[0, 1] == "."
-      fp = "#{path}/#{file}"
-      filel = file.downcase
-      
-      if File.directory?(fp)
-        begin
-          self.scan_dir(fp, args.merge(:depth => depth), &block) if depth < args[:max_depth]
-        rescue => e
-          $stderr.puts "Error while searching folder: '#{e.message}' for '#{fp}'."
-        end
-      else
-        all_found = true
-        args[:words].each do |word|
-          if file.index(word) == nil
-            all_found = false
-            break
-          end
-        end
+      begin
+        next if file[0, 1] == "."
+        fp = "#{path}/#{file}"
+        filel = file.downcase
         
-        block.call(:name => file, :path => fp) if all_found
+        if File.directory?(fp)
+          self.scan_dir(fp, args.merge(:depth => depth), &block) if depth < args[:max_depth]
+        else
+          all_found = true
+          args[:words].each do |word|
+            if filel.index(word) == nil
+              all_found = false
+              break
+            end
+          end
+          
+          block.call(:name => file, :path => fp) if all_found
+        end
+      rescue => e
+        $stderr.puts "Error while searching item: '#{e.message}' for '#{fp}'."
       end
     end
   end
