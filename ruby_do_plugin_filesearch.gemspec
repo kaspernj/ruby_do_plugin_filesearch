@@ -32,6 +32,7 @@ Gem::Specification.new do |s|
     "include/models.rb",
     "lib/ruby_do_plugin_filesearch.rb",
     "models/plugin_filesearch_folder.rb",
+    "ruby_do_plugin_filesearch.gemspec",
     "spec/ruby_do_plugin_filesearch_spec.rb",
     "spec/spec_helper.rb"
   ]
